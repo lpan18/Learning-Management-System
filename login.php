@@ -1,151 +1,116 @@
+<?php
+require_once 'functions.php';
+function login() {
+	if (empty($_POST['username'])) {
+		$GLOBALS['message'] = 'Please enter your username';
+		return;
+	}
+	if (empty($_POST['password'])) {
+		$GLOBALS['message'] = 'Please enter your password';
+		return;
+	}
+	$username = $_POST['username'];
+	$password = $_POST['password'];
+	$user = array();
+	if ($_POST["radio"] == "student") {
+		$user = lms_fetch_one("SELECT * from student where sno = '{$username}' limit 1;");
+		if ($username !== $user['sno']) {
+			$GLOBALS['message'] = 'Incorrect username or password';
+			return;
+		}
+		if ($password !== $user['password']) {
+			$GLOBALS['message'] = 'Incorrect username or password';
+			return;
+		}
+    $_SESSION['user_role'] = 'student';
+	} elseif ($_POST["radio"] == "teacher") {
+		$user = lms_fetch_one("SELECT * from teacher where tno = '{$username}' limit 1;");
+		if ($username !== $user['tno']) {
+			$GLOBALS['message'] = 'Incorrect username or password';
+			return;
+		}
+		if ($password !== $user['password']) {
+			$GLOBALS['message'] = 'Incorrect username or password';
+			return;
+		}
+    $_SESSION['user_role'] = 'teacher';
+	}
+	$_SESSION['current_login_user'] = $user;
+	header('Location:/index.php');
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+	login();
+}
+?>
+
+<!DOCTYPE html>
 <html>
-
 <head>
-<meta http-equiv=content-type content="text/html;charset=utf-8">
-<title>登录</title>
-<link href="style.css" rel="stylesheet" type="text/css">
-<script language="javascript">
-//获得焦点输入背景设置为红色
-function setStyle(x)
-{
-document.getElementById(x).style.background="#FFFFCC"
-}
-//失去焦点输入背景重置为白色
-function recoveryStyle(y)
-{
-document.getElementById(y).style.background="White"
-}
-function check()
-{
-var l=document.all;
-if(l.user.value=="")
-{
-alert("请输入用户名");
-l.user.focus();
-return false;
-}
-if(l.password.value=="")
-{
-alert("请输入用户密码");
-l.password.focus();
-return false;
-}
-}
-
-
-function chkpwd(obj){
-var t=obj.value;
-var id=getResult(t);
-
-//定义对应的消息提示
-var msg=new Array(4);
-msg[0]="密码过短。";
-msg[1]="密码强度太低。";
-msg[2]="密码强度一般，仍不符合要求。";
-msg[3]="密码强度高。";
-
-var sty=new Array(4);
-sty[0]=-45;
-sty[1]=-30;
-sty[2]=-15;
-sty[3]=0;
-
-var col = new Array(4);
-col[0] = "gray";
-col[1] = "#50AEDD";
-col[2] = "#FF8213";
-col[3] = "green";
-
-//设置显示效果
-var bImg="//192.168.1.230/mimajiance.gif" //一张显示用的图片
-var sWidth=300;
-var sHeight=15;
-var Bobj=document.getElementById("chkResult");
-
-Bobj.style.fontSize="12px";
-Bobj.style.color=col[id];
-Bobj.style.width=sWidth + "px";
-Bobj.style.height=sHeight + "px";
-Bobj.style.lineHeight=sHeight + "px";
-Bobj.style.background="url(" + bImg + ") no-repeat left " + sty[id] + "px";
-Bobj.style.textIndent="20px";
-Bobj.innerHTML="检测提示：" + msg[id];
-}
-
-//定义检测函数,返回0/1/2/3分别代表无效/差/一般/强
-function getResult(s){
-if(s.length < 6){
-   return 0;
-}
-var ls = 0;
-if (s.match(/[a-z]/ig)){
-   ls++;
-}
-if (s.match(/[0-9]/ig)){
-   ls++;
-}
-   if (s.match(/(.[^a-z0-9])/ig)){
-   ls++;
-}
-if (s.length < 6 && ls > 0){
-   ls--;
-}
-return ls
-}
-</script>
+  <meta charset=utf-8>
+  <title>Login</title>
+  <link rel="stylesheet" href="/static/assets/vendors/bootstrap/css/bootstrap.css">
+  <link rel="stylesheet" href="/static/assets/vendors/animate/animate.css">
+  <link rel="stylesheet" href="/static/assets/css/user.css">
+  <script src="/static/assets/vendors/jquery/jquery.js"></script>
 </head>
+<body>
+  <div class="login">
+    <!-- 不用加enctype因为没有文件域，在form上添加novalidate 取消浏览器自带的校验H5， 关闭autocompleted取消自动填充 -->
+    <!-- 有message就shake https://daneden.github.io/animate.css/ -->
+    <form class="login-wrap<?php echo isset($message) ? ' shake animated' : '' ?>" action="<?php echo $_SERVER['PHP_SELF']; ?>" method="post" novalidate autocompleted="off">
+      <img class="avatar" src="/static/assets/img/default.png">
+      <!-- 有错误信息时展示 -->
+      <?php if (isset($message)): ?>
+      <div class="alert alert-danger">
+        <strong>Error!</strong> <?php echo "$message"; ?>
+      </div>
+      <?php endif?>
+      <div class="form-group">
+        <label><input type="radio" name="radio" value="student">Student</label>
+        <label><input type="radio" name="radio" value="teacher">Teacher</label>
+      </div>
+      <div class="form-group">
+        <label for="username" class="sr-only">Username</label>
+        <!-- value 不能使用$email,局部变量 -->
+        <input id="username" name="username" type="text" class="form-control" placeholder="Username" autofocus value="<?php echo empty($_POST['username']) ? '' : $_POST['username']; ?>">
+      </div>
+      <div class="form-group">
+        <label for="password" class="sr-only">Password</label>
+        <input id="password" name="password" type="password" class="form-control" placeholder="Password">
+      </div>
+      <button class="btn btn-primary btn-block">Login</button>
+    </form>
+  </div>
+  <script>
+    //沙箱--入口函数 1单独作用域2确保页面加载后进行
+      $(function($){
+        //目标：用户输入邮箱后，拿到头像
+        //实现：
+        // -时机：邮箱文本框失去焦点,并且能够拿到文本框填写的邮箱时
+        // -事情：获取文本框填写的邮箱对应的头像地址
+        var usernameFormat = /^[a-zA-Z0-9_.]+$/;
+      $('#username').on('blur', function () {
+        var value = $(this).val();  //this为dom对象，通过$函数转成jquery对象，并使用jquery对象的val方法
+        //忽略文本框为空或者不是一个邮箱
+        if(!value||!usernameFormat.test(value)) return;
+        //由于客户端js无法直接操作数据库，应该通过js发送ajax请求，告诉服务端的某个接口，让这个接口帮助客户端获取头像地址
+        $.get('/api/avatar.php',{username:value},function(res){
+        //email是属性，value是变量，传入变量值
+          if(!res) return; //拿不到数据
+          //拿到图片地址，设置img的src属性
+          // $('.avatar').fadeOut().attr('src', res).fadeIn();
+          $('.avatar').fadeOut(function(){
+            //等到淡出完成
+            $(this).on('load', function(){
+              //等到图片加载成功过后
+              $(this).fadeIn();
+            }).attr('src', res);
+          })
+        })
 
-<body class="Login_bdWp">
-<div class="Login_w">
-<div class="Login_wIn">
-<div class="Login_Head">
-<h1 class="Logo"><a href="" target="_blank"><img src="logo.jpg"  /></a></h1>		</div>
-<div class="Login_bg">
-<div class="I_Style I_Style_1">
-<div class="fmi_LgBx">
-<div class="fmi_ACon " id="divACon">
-
-<form id="form1" name="form1" action="record.php" method="post" onsubmit="return check()" >
-<input type="hidden" name="username" id="txtUserName" value="" />
-<fieldset class="fmi_LgBxWp">
-<div class="fmi_LgBxCon">
-<table border="0" cellspacing="0" cellpadding="0" class="LgBxLst_tb">
-<tr >
-<td><font size='3'>用 户</font></td>
-<td width="300">&nbsp;
-<input type="radio" name="radio" id="type" value=student  checked><font size='3'>普通学生</font>
-<input type="radio" name="radio" id="type1" value=manager><font size='3'>学生管理员</font>
-<input type="radio" name="radio" id="type2" value=teacher><font size='3'>教师</font></td>
-</tr>
-<tr>
-<th nowrap><font size='3'>用户名</font></th>
-<td width="200">&nbsp;<input type="text" id=user name=user style="width:190px;height:32px;" onfocus="setStyle(this.id)" onBlur="recoveryStyle(this.id)" style='font-size:20px'   >
-<script language="javascript">
-document.all.user.focus()
-</script></td>
-</tr>
-<tr>
-<th nowrap><font size='3'>密　码</font></th>
-<td>&nbsp;<input type=password  id=password name=password style="width:190px;height:32px;" onfocus="setStyle(this.id)" onBlur="recoveryStyle(this.id)" style='font-size:20px'  ></td>								</tr>					<tr>
-<th></th>
-<td colspan="3" >&nbsp;<input id=submit type=submit value="登陆" name=submit style="height=35px;width=80px;"  style='font-size:20px'  ></td>
-</tr>
-<tr>
-<th>&nbsp;</th>
-<td colspan="3" nowrap class="Reg_Wp">											<span>&nbsp;&nbsp;<font color="red">温馨提示：若您是管理员，请从学生管理员账户登录！<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;如有疑问，请点击<b><a href="loginhelp.php" target="_blank" title="" tabindex="10">登陆帮助!</a></b></span>
-</td>
-</tr>
-</table>
-<div class="Error" id="divError"></div>
-</div>
-</fieldset>
-</form>
-</div>
-</div>
-</div>
-</div>
-</div>
-</div>
+      })
+      })
+  </script>
 </body>
 </html>
-
